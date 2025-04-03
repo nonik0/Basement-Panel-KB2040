@@ -1,30 +1,51 @@
 #include <Arduino.h>
+#include <Wire.h>
 
 #include "lol_rgb_shield.h"
-#include "tunnel_runner.h"
 
 LolRgbShieldTaskHandler lolRgbShield;
-TunnelRunnerTaskHandler tunnelRunner;
 
 Adafruit_NeoPixel rgbLed = Adafruit_NeoPixel(1, 17, NEO_GRB + NEO_KHZ800);
+
+void receiveEvent(int bytesReceived)
+{
+  if (bytesReceived < 2)
+    return;
+
+  uint8_t command = Wire.read();
+  if (command == 0x00)
+  {
+    bool state = Wire.read();
+    lolRgbShield.setDisplay(state);
+  }
+  else if (command == 0x01)
+  {
+    char buffer[LolRgbShieldTaskHandler::MaxMessageSize];
+
+    int i = 0;
+    while (Wire.available() && i < sizeof(buffer) - 1)
+    {
+      buffer[i++] = Wire.read();
+    }
+    buffer[i] = '\0';
+
+    lolRgbShield.setMessage(buffer);
+  }
+}
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Starting setup...");
 
-  while (!tunnelRunner.setup())
-  {
-    Serial.println("Failed to setup TunnelRunnerTaskHandler");
-    delay(5000);
-  }
+  Wire.begin(0x13); // Initialize as I2C slave with address 0x13
+  Wire.onReceive(receiveEvent);
 
   Serial.println("Setup complete");
 }
 
 void loop()
 {
-  tunnelRunner.tick();
 }
 
 void setup1()

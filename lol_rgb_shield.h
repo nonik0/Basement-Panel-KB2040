@@ -5,6 +5,16 @@
 
 class LolRgbShieldTaskHandler
 {
+public:
+    static const int MaxMessageSize = 100;
+
+    LolRgbShieldTaskHandler() {}
+
+    bool setup();
+    void setDisplay(bool display) { _display = display; }
+    void setMessage(const char *message);
+    void tick();
+
 private:
     static const uint8_t PIN = 4;
     static const uint8_t WIDTH = 14;
@@ -13,28 +23,21 @@ private:
 
     Adafruit_NeoMatrix _matrix = Adafruit_NeoMatrix(WIDTH, HEIGHT, PIN);
     const uint16_t _colors[3] = {_matrix.Color(0xFF, 0x33, 0x00), _matrix.Color(0xFF, 0x77, 0x00), _matrix.Color(0xFF, 0x99, 0x00)};
-    static const int MaxMessageSize = 100;
 
     char _message[MaxMessageSize];
-    uint16_t _message_width;   // Computed in setup() below
-    int _x = _matrix.width();  // Start with message off right edge
-    int _y = _matrix.height(); // With custom fonts, y is the baseline, not top
-    int _pass = 0;             // Counts through the colors[] array
+    uint16_t _message_width;
+    int _x = _matrix.width();
+    int _y = _matrix.height();
+    int _pass = 0;
     bool _display = true;
     unsigned long _lastUpdate = 0;
-
-public:
-    LolRgbShieldTaskHandler() {}
-
-    bool setup();
-    void tick();
 };
 
 bool LolRgbShieldTaskHandler::setup()
 {
     Serial.println("Starting LolRgbShieldTask setup");
 
-    strcpy(_message, "BEAU IN TOW!");
+    strcpy(_message, "STELLA IS BELLA!");
 
     _matrix.begin();
     _matrix.setBrightness(5);
@@ -50,6 +53,20 @@ bool LolRgbShieldTaskHandler::setup()
     return true;
 }
 
+void LolRgbShieldTaskHandler::setMessage(const char *message)
+{
+    Serial.println("LolRgbShieldTask setMessage: " + String(message));
+
+    strncpy(_message, message, MaxMessageSize - 1);
+    _message[MaxMessageSize - 1] = '\0';
+
+    int16_t d1;
+    uint16_t d2;
+    _matrix.getTextBounds(_message, 0, 0, &d1, &d1, &_message_width, &d2);
+
+    _x = _matrix.width();
+}
+
 void LolRgbShieldTaskHandler::tick()
 {
     if (millis() - _lastUpdate < DELAY_MS)
@@ -58,7 +75,6 @@ void LolRgbShieldTaskHandler::tick()
     }
 
     _lastUpdate = millis();
-    Serial.println("LolRgbShieldTask tick");
 
     if (!_display)
     {
