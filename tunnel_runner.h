@@ -2,10 +2,9 @@
 
 #include <Adafruit_LEDBackpack.h>
 
-#include "display_task_handler.h"
 #include "tunnel_runner_lib.h"
 
-class TunnelRunnerTaskHandler : public DisplayTaskHandler
+class TunnelRunnerTaskHandler
 {
 private:
     static const uint8_t I2C_ADDR_1 = 0x72;
@@ -21,29 +20,26 @@ private:
     Adafruit_8x16minimatrix _matrix3 = Adafruit_8x16minimatrix();
     TunnelRunner *_tunnelRunner;
 
+    bool _display = true;
+    unsigned long _lastUpdate = 0;
+
 public:
     TunnelRunnerTaskHandler() {}
 
-    bool createTask() override;
+    bool setup();
+    void tick();
 
 private:
-    void task(void *parameters) override;
     void drawPixel(int x, int y, uint32_t c);
 };
 
-bool TunnelRunnerTaskHandler::createTask()
+bool TunnelRunnerTaskHandler::setup()
 {
-    log_i("Starting TunnelRunner8x48 setup");
-
-    if (_taskHandle != NULL)
-    {
-        log_w("Task already started");
-        return false;
-    }
+    Serial.println("Starting TunnelRunner8x48 setup");
 
     if (!_matrix1.begin(I2C_ADDR_1) || !_matrix2.begin(I2C_ADDR_2) || !_matrix3.begin(I2C_ADDR_3))
     {
-        log_e("Matrix 1, 2, or 3 not found");
+        //log_e("Matrix 1, 2, or 3 not found");
         return false;
     }
 
@@ -65,38 +61,34 @@ bool TunnelRunnerTaskHandler::createTask()
 
     _tunnelRunner->init();
 
-    xTaskCreatePinnedToCore(taskWrapper, "TunnelRunner8x48Task", 4096 * 4, this, TASK_PRIORITY, &_taskHandle, 0); // other Arduino tasks are on Core 1
-
-    log_i("TunnelRunner8x16 setup complete");
+    Serial.println("TunnelRunner8x16 setup complete");
     return true;
 }
 
-void TunnelRunnerTaskHandler::task(void *parameters)
+void TunnelRunnerTaskHandler::tick()
 {
-    delay(10);
-    log_i("Starting TunnelRunner8x48Task");
-
-    while (1)
+    if (millis() - _lastUpdate < TUNNEL_DELAY_MS)
     {
-        if (!_display)
-        {
-            _matrix1.clear();
-            _matrix1.writeDisplay();
-            _matrix2.clear();
-            _matrix2.writeDisplay();
-            _matrix3.clear();
-            _matrix3.writeDisplay();
-            delay(TUNNEL_DELAY_MS);
-            continue;
-        }
+        return;
+    }
+    _lastUpdate = millis();
 
-        if (_tunnelRunner->update())
-        {
-            _matrix1.writeDisplay();
-            _matrix2.writeDisplay();
-            _matrix3.writeDisplay();
-        }
-        delay(TUNNEL_DELAY_MS);
+    if (!_display)
+    {
+        _matrix1.clear();
+        _matrix1.writeDisplay();
+        _matrix2.clear();
+        _matrix2.writeDisplay();
+        _matrix3.clear();
+        _matrix3.writeDisplay();
+        return;
+    }
+
+    if (_tunnelRunner->update())
+    {
+        _matrix1.writeDisplay();
+        _matrix2.writeDisplay();
+        _matrix3.writeDisplay();
     }
 }
 
