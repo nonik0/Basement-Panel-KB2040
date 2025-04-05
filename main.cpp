@@ -31,6 +31,11 @@ void receiveEvent(int bytesReceived)
 
     lolRgbShield.setMessage(buffer);
   }
+  else if (command == 0x02)
+  {
+    uint8_t scrollSpeed = Wire.read();
+    lolRgbShield.setScrollSpeed(scrollSpeed);
+  }
 }
 
 void setup()

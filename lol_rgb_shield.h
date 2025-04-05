@@ -3,6 +3,9 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Fonts/TomThumb.h>
 
+// only works as static if I specify more than 4 args?
+Adafruit_NeoMatrix _matrix = Adafruit_NeoMatrix(14, 5, 4, NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT);
+
 class LolRgbShieldTaskHandler
 {
 public:
@@ -13,15 +16,16 @@ public:
     bool setup();
     void setDisplay(bool display) { _display = display; }
     void setMessage(const char *message);
+    void setScrollSpeed(uint8_t speed);
     void tick();
 
 private:
     static const uint8_t PIN = 4;
     static const uint8_t WIDTH = 14;
     static const uint8_t HEIGHT = 5;
-    static const int DELAY_MS = 100;
+    static const int MIN_UPDATE_INTERVAL = 50;
+    static const int MAX_UPDATE_INTERVAL = 500;
 
-    Adafruit_NeoMatrix _matrix = Adafruit_NeoMatrix(WIDTH, HEIGHT, PIN);
     const uint16_t _colors[3] = {_matrix.Color(0xFF, 0x33, 0x00), _matrix.Color(0xFF, 0x77, 0x00), _matrix.Color(0xFF, 0x99, 0x00)};
 
     char _message[MaxMessageSize];
@@ -31,6 +35,7 @@ private:
     int _pass = 0;
     bool _display = true;
     unsigned long _lastUpdate = 0;
+    unsigned long _updateInterval = 75;
 };
 
 bool LolRgbShieldTaskHandler::setup()
@@ -67,9 +72,14 @@ void LolRgbShieldTaskHandler::setMessage(const char *message)
     _x = _matrix.width();
 }
 
+void LolRgbShieldTaskHandler::setScrollSpeed(uint8_t speed)
+{
+    _updateInterval = map(constrain(speed, 0, 100), 100, 0, MIN_UPDATE_INTERVAL, MAX_UPDATE_INTERVAL);
+}
+
 void LolRgbShieldTaskHandler::tick()
 {
-    if (millis() - _lastUpdate < DELAY_MS)
+    if (millis() - _lastUpdate < _updateInterval)
     {
         return;
     }
