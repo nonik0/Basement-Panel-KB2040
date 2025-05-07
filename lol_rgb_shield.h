@@ -3,13 +3,17 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Fonts/TomThumb.h>
 
+#define MATRIX_HEIGHT 5
+#define MATRIX_WIDTH 14
+#define MATRIX_PIN 4
+
 // only works as static if I specify more than 4 args?
-Adafruit_NeoMatrix _matrix = Adafruit_NeoMatrix(14, 5, 4, NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT);
+Adafruit_NeoMatrix _matrix = Adafruit_NeoMatrix(MATRIX_WIDTH, MATRIX_HEIGHT, MATRIX_PIN);//, NEO_MATRIX_BOTTOM + NEO_MATRIX_RIGHT);
 
 class LolRgbShieldTaskHandler
 {
 public:
-    static const int MaxMessageSize = 100;
+    static const int MaxMessageSize = 500;
 
     LolRgbShieldTaskHandler() {}
 
@@ -20,10 +24,10 @@ public:
     void tick();
 
 private:
-    static const uint8_t PIN = 4;
-    static const uint8_t WIDTH = 14;
-    static const uint8_t HEIGHT = 5;
-    static const int MIN_UPDATE_INTERVAL = 50;
+    static const uint8_t PIN = MATRIX_PIN;
+    static const uint8_t WIDTH = MATRIX_WIDTH;
+    static const uint8_t HEIGHT = MATRIX_HEIGHT;
+    static const int MIN_UPDATE_INTERVAL = 10;
     static const int MAX_UPDATE_INTERVAL = 500;
 
     const uint16_t _colors[3] = {_matrix.Color(0xFF, 0x33, 0x00), _matrix.Color(0xFF, 0x77, 0x00), _matrix.Color(0xFF, 0x99, 0x00)};
@@ -35,7 +39,7 @@ private:
     int _pass = 0;
     bool _display = true;
     unsigned long _lastUpdate = 0;
-    unsigned long _updateInterval = 75;
+    unsigned long _updateInterval = 50;
 };
 
 bool LolRgbShieldTaskHandler::setup()

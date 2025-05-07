@@ -3,9 +3,13 @@
 
 #include "lol_rgb_shield.h"
 
-LolRgbShieldTaskHandler lolRgbShield;
+#define I2C_ADDRESS 0x14
+#define NEOPIXEL_PIN 17
 
-Adafruit_NeoPixel rgbLed = Adafruit_NeoPixel(1, 17, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel rgbLed = Adafruit_NeoPixel(1, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+LolRgbShieldTaskHandler lolRgbShield;
+char buffer[LolRgbShieldTaskHandler::MaxMessageSize];
+static int bufferIndex = 0;
 
 void receiveEvent(int bytesReceived)
 {
@@ -22,14 +26,28 @@ void receiveEvent(int bytesReceived)
   {
     char buffer[LolRgbShieldTaskHandler::MaxMessageSize];
 
-    int i = 0;
-    while (Wire.available() && i < sizeof(buffer) - 1)
+    // read chunk into buffer, discard extra bytes if past buffer size
+    while (Wire.available())
     {
-      buffer[i++] = Wire.read();
+      uint8_t byte = Wire.read();
+      if (bufferIndex < LolRgbShieldTaskHandler::MaxMessageSize - 1)
+      {
+        buffer[bufferIndex++] = byte;
+      }
     }
-    buffer[i] = '\0';
+    buffer[bufferIndex] = '\0';
 
-    lolRgbShield.setMessage(buffer);
+    // last chunk
+    if (bufferIndex > 0 && (buffer[bufferIndex - 1] == '\n' || bufferIndex >= LolRgbShieldTaskHandler::MaxMessageSize - 1))
+    {
+      if (buffer[bufferIndex - 1] == '\n')
+      {
+        buffer[--bufferIndex] = '\0';
+      }
+
+      lolRgbShield.setMessage(buffer);
+      bufferIndex = 0;
+    }
   }
   else if (command == 0x02)
   {
@@ -43,7 +61,7 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting setup...");
 
-  Wire.begin(0x13); // Initialize as I2C slave with address 0x13
+  Wire.begin(I2C_ADDRESS); // Initialize as I2C slave with address 0x13
   Wire.onReceive(receiveEvent);
 
   Serial.println("Setup complete");
