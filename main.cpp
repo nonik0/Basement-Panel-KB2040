@@ -16,6 +16,9 @@ void receiveEvent(int bytesReceived)
   if (bytesReceived < 2)
     return;
 
+  static char buffer[LolRgbShieldTaskHandler::MaxMessageSize];
+  static int bufferIndex = 0;
+
   uint8_t command = Wire.read();
   if (command == 0x00)
   {
@@ -24,8 +27,6 @@ void receiveEvent(int bytesReceived)
   }
   else if (command == 0x01)
   {
-    char buffer[LolRgbShieldTaskHandler::MaxMessageSize];
-
     // read chunk into buffer, discard extra bytes if past buffer size
     while (Wire.available())
     {
